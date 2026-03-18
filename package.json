@@ -1,0 +1,30 @@
+{
+  "name": "assignment-vault-by-harshita",
+  "version": "1.0.0",
+  "description": "Private, password-protected academic assignment vault for Techno NJR students.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "keywords": [],
+  "author": "Harshita Chaplot",
+  "license": "MIT",
+  "dependencies": {
+    "compression": "^1.7.4",
+    "connect-flash": "^0.1.1",
+    "dotenv": "^16.6.1",
+    "ejs": "^3.1.10",
+    "express": "^4.19.2",
+    "express-ejs-layouts": "^2.5.1",
+    "express-session": "^1.18.0",
+    "helmet": "^7.0.0",
+    "mongoose": "^8.8.0",
+    "multer": "^1.4.5-lts.1",
+    "nanoid": "^5.0.7",
+    "razorpay": "^2.9.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}

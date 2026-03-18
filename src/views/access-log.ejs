@@ -1,0 +1,62 @@
+<section class="av-dashboard">
+  <header class="av-dashboard-header">
+    <div class="av-dashboard-title-block">
+      <h1 class="av-dashboard-heading">Access Log</h1>
+      <p class="av-dashboard-subtitle">Recent payment-based unlocks (owner only)</p>
+    </div>
+
+    <div class="av-dashboard-actions">
+      <a href="/dashboard" class="av-button-secondary">Back to Dashboard</a>
+    </div>
+  </header>
+
+  <section class="av-section">
+    <div class="av-section-header">
+      <h2>Recent Passes</h2>
+      <p>Showing the latest 50 access passes created via Razorpay.</p>
+    </div>
+
+    <% if (!passes || !passes.length) { %>
+      <p class="av-empty">No access passes recorded yet.</p>
+    <% } else { %>
+      <div class="av-card av-login-card" style="overflow-x: auto;">
+        <table class="av-table">
+          <thead>
+            <tr>
+              <th>Created</th>
+              <th>Student</th>
+              <th>Contact</th>
+              <th>Amount</th>
+              <th>Order ID</th>
+              <th>Payment ID</th>
+              <th>Status</th>
+              <th>Expires At</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% passes.forEach(function(p) { %>
+              <tr>
+                <td><%= new Date(p.createdAt).toLocaleString() %></td>
+                <td><%= p.studentName %></td>
+                <td><%= p.contact || '-' %></td>
+                <td>₹<%= (p.amount || 0) / 100 %></td>
+                <td class="av-mono"><%= p.razorpayOrderId %></td>
+                <td class="av-mono"><%= p.razorpayPaymentId || '-' %></td>
+                <td>
+                  <% if (p.used) { %>
+                    <span class="av-chip av-chip-success">USED</span>
+                  <% } else if (new Date(p.expiresAt).getTime() < Date.now()) { %>
+                    <span class="av-chip av-chip-danger">EXPIRED</span>
+                  <% } else { %>
+                    <span class="av-chip">ACTIVE</span>
+                  <% } %>
+                </td>
+                <td><%= new Date(p.expiresAt).toLocaleString() %></td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </section>
+</section>

@@ -1,0 +1,142 @@
+<section class="av-hero">
+  <div class="av-hero-glow"></div>
+  <header class="av-hero-header">
+    <h1 class="av-logo-heading">ASSIGNMENT VAULT</h1>
+    <p class="av-logo-sub">Techno NJR Resource Hub</p>
+  </header>
+
+  <div class="av-card av-login-card">
+    <h2 class="av-card-title">Secure Entrance</h2>
+    <p class="av-card-subtitle">Quiet discipline. Organized excellence.</p>
+
+    <% if (messages.error && messages.error.length) { %>
+      <div class="av-alert av-alert-error av-alert-animate">
+        <span><%= messages.error[0] %></span>
+      </div>
+    <% } %>
+
+    <form id="paymentLoginForm" class="av-form">
+      <label class="av-field">
+        <span class="av-field-label">Student Name</span>
+        <div class="av-input-shell">
+          <span class="av-input-icon">🧑‍🎓</span>
+          <input
+            type="text"
+            name="studentName"
+            id="studentNameInput"
+            placeholder="enter your name"
+            required
+            autocomplete="off"
+          />
+        </div>
+      </label>
+
+      <label class="av-field">
+        <span class="av-field-label">Email or Phone (optional)</span>
+        <div class="av-input-shell">
+          <span class="av-input-icon">📧</span>
+          <input
+            type="text"
+            name="contact"
+            id="contactInput"
+            placeholder="for payment receipt / contact (optional)"
+            autocomplete="off"
+          />
+        </div>
+      </label>
+
+      <button type="submit" class="av-button-primary av-button-wide" id="payButton">
+        Pay ₹5 to Unlock
+      </button>
+    </form>
+
+    <div id="passcodeSection" style="display: none; margin-top: 1.5rem;">
+      <p class="av-card-subtitle">
+        Payment successful. Your one-time passcode is:
+        <strong id="generatedPasscode"></strong>
+      </p>
+      <p class="av-meta-text">Please enter this passcode below to complete login.</p>
+
+      <form id="passcodeLoginForm" class="av-form av-form-secondary" method="POST" action="/login/passcode">
+        <input type="hidden" name="studentName" id="passcodeStudentNameHidden" />
+
+        <label class="av-field">
+          <span class="av-field-label">One-time Passcode</span>
+          <div class="av-input-shell">
+            <span class="av-input-icon">🔑</span>
+            <input
+              type="text"
+              name="passcode"
+              id="loginPasscodeInput"
+              placeholder="enter the code shown above"
+              required
+              autocomplete="off"
+            />
+          </div>
+        </label>
+
+        <button type="submit" class="av-button-primary av-button-wide">
+          Complete Login
+        </button>
+      </form>
+    </div>
+
+    <!-- Owner login (no payment, fixed passcode) -->
+    <div style="margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 1.5rem;">
+      <p class="av-meta-text" style="margin-bottom: 0.75rem;">
+        Owner access only – use your private passcode.
+      </p>
+      <form action="/login" method="POST" class="av-form av-form-secondary" id="ownerLoginForm">
+        <label class="av-field">
+          <span class="av-field-label">Owner Name</span>
+          <div class="av-input-shell">
+            <span class="av-input-icon">👑</span>
+            <input
+              type="text"
+              name="studentName"
+              placeholder="enter owner name"
+              required
+              autocomplete="off"
+            />
+          </div>
+        </label>
+
+        <label class="av-field">
+          <span class="av-field-label">Owner Passcode</span>
+          <div class="av-input-shell">
+            <span class="av-input-icon">🔒</span>
+            <input
+              type="password"
+              name="passcode"
+              placeholder="enter owner passcode"
+              required
+            />
+          </div>
+        </label>
+
+        <button type="submit" class="av-button-secondary av-button-wide">
+          Owner Login (no payment)
+        </button>
+      </form>
+    </div>
+
+    <div class="av-meta-text">
+      <span>Restricted Access // Authorized batchmates only</span>
+      <span>
+        By continuing you agree to the
+        <a href="/privacy" class="av-link">Privacy Policy</a>.
+      </span>
+    </div>
+  </div>
+
+  <button class="av-theme-toggle" type="button" id="themeToggle">
+    <span class="av-theme-icon" data-mode="dark">🌙</span>
+  </button>
+</section>
+
+<% if (razorpayKeyId) { %>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <script>
+    window.AV_RAZORPAY_KEY_ID = '<%= razorpayKeyId %>';
+  </script>
+<% } %>

@@ -1,0 +1,241 @@
+<section class="av-dashboard">
+  <header class="av-dashboard-header">
+    <div class="av-dashboard-title-block">
+      <h1 class="av-dashboard-heading">Welcome, <%= currentUser.name %></h1>
+      <p class="av-dashboard-subtitle">Curated academic assignments &amp; lab work</p>
+    </div>
+
+    <div class="av-dashboard-actions">
+      <div class="av-search-wrapper">
+        <input
+          type="search"
+          id="globalSearch"
+          class="av-search-input"
+          placeholder="Search by title, subject, or description"
+          autocomplete="off"
+        />
+      </div>
+
+      <div class="av-filters">
+        <select id="subjectFilter" class="av-select">
+          <option value="">All subjects</option>
+          <% subjects.forEach(function(sub) { %>
+            <option value="<%= sub.slug %>"><%= sub.name %></option>
+          <% }) %>
+        </select>
+
+        <select id="typeFilter" class="av-select">
+          <option value="">All file types</option>
+          <option value="image">Images</option>
+          <option value="pdf">PDF</option>
+        </select>
+      </div>
+
+      <form action="/logout" method="POST">
+        <button type="submit" class="av-button-secondary">End Session</button>
+      </form>
+
+      <% if (isOwner) { %>
+        <a href="/admin/access-log" class="av-button-secondary">View Access Log</a>
+      <% } %>
+
+      <button class="av-theme-toggle" type="button" id="themeToggle">
+        <span class="av-theme-icon" data-mode="dark">🌙</span>
+      </button>
+    </div>
+  </header>
+
+  <% if (messages.success && messages.success.length) { %>
+    <div class="av-alert av-alert-success">
+      <span><%= messages.success[0] %></span>
+    </div>
+  <% } %>
+  <% if (messages.error && messages.error.length) { %>
+    <div class="av-alert av-alert-error av-alert-animate">
+      <span><%= messages.error[0] %></span>
+    </div>
+  <% } %>
+
+  <section class="av-section">
+    <div class="av-section-header">
+      <h2>Recently Uploaded</h2>
+    </div>
+    <div class="av-card-grid" id="recentGrid">
+      <% if (!recentAssignments.length) { %>
+        <p class="av-empty">No uploads yet. Quiet shelves, ready to be filled.</p>
+      <% } %>
+      <% recentAssignments.forEach(function(a){ %>
+        <article
+          class="av-assignment-card av-watermark"
+          data-id="<%= a.id %>"
+          data-subject="<%= a.subjectSlug %>"
+          data-type="<%= a.fileType %>"
+        >
+          <div class="av-assignment-header">
+            <h3><%= a.title %></h3>
+            <span class="av-assignment-chip">
+              <%= subjects.find(s => s.slug === a.subjectSlug)?.name || 'Unknown' %>
+            </span>
+          </div>
+          <p class="av-assignment-meta">
+            <span>
+              Uploaded:
+              <%= new Date(a.uploadedAt).toLocaleString() %>
+            </span>
+            <span class="av-assignment-type"><%= a.fileType.toUpperCase() %></span>
+          </p>
+          <% if (a.description) { %>
+            <p class="av-assignment-desc"><%= a.description %></p>
+          <% } %>
+          <div class="av-assignment-actions">
+            <a href="/file/<%= a.id %>/preview" target="_blank" class="av-button-ghost">View</a>
+            <a href="/file/<%= a.id %>/download" class="av-button-ghost">Download</a>
+          </div>
+          <% if (isOwner) { %>
+            <div class="av-assignment-admin">
+              <form action="/assignments/<%= a.id %>/delete" method="POST" onsubmit="return confirm('Delete this assignment?');">
+                <button class="av-link-danger" type="submit">Delete</button>
+              </form>
+            </div>
+          <% } %>
+          <span class="av-watermark-text">Harshita Chaplot</span>
+        </article>
+      <% }) %>
+    </div>
+  </section>
+
+  <section class="av-section av-two-column">
+    <div>
+      <div class="av-section-header">
+        <h2>Theory</h2>
+      </div>
+      <div class="av-card-grid">
+        <% theorySubjects.forEach(function(sub){ %>
+          <article class="av-subject-card">
+            <header class="av-subject-header">
+              <h3><%= sub.name %></h3>
+              <span class="av-subject-tag">Theory</span>
+            </header>
+            <div class="av-subject-body" data-subject-grid="<%= sub.slug %>">
+              <% const subset = assignments.filter(a => a.subjectSlug === sub.slug); %>
+              <% if (!subset.length) { %>
+                <p class="av-empty">No uploads yet.</p>
+              <% } %>
+              <% subset.forEach(function(a){ %>
+                <div
+                  class="av-mini-card av-watermark"
+                  data-id="<%= a.id %>"
+                  data-subject="<%= a.subjectSlug %>"
+                  data-type="<%= a.fileType %>"
+                >
+                  <div class="av-mini-main">
+                    <h4><%= a.title %></h4>
+                    <p><%= a.description || 'No description' %></p>
+                  </div>
+                  <div class="av-mini-meta">
+                    <span><%= a.fileType.toUpperCase() %></span>
+                    <a href="/file/<%= a.id %>/preview" target="_blank" class="av-link">View</a>
+                    <a href="/file/<%= a.id %>/download" class="av-link">Download</a>
+                  </div>
+                  <% if (isOwner) { %>
+                    <form action="/assignments/<%= a.id %>/delete" method="POST" onsubmit="return confirm('Delete this assignment?');">
+                      <button class="av-link-danger" type="submit">Delete</button>
+                    </form>
+                  <% } %>
+                  <span class="av-watermark-text">HC</span>
+                </div>
+              <% }) %>
+            </div>
+          </article>
+        <% }) %>
+      </div>
+    </div>
+
+    <div>
+      <div class="av-section-header">
+        <h2>Practical / Lab</h2>
+      </div>
+      <div class="av-card-grid">
+        <% labSubjects.forEach(function(sub){ %>
+          <article class="av-subject-card">
+            <header class="av-subject-header">
+              <h3><%= sub.name %></h3>
+              <span class="av-subject-tag">Lab</span>
+            </header>
+            <div class="av-subject-body" data-subject-grid="<%= sub.slug %>">
+              <% const subset = assignments.filter(a => a.subjectSlug === sub.slug); %>
+              <% if (!subset.length) { %>
+                <p class="av-empty">No uploads yet.</p>
+              <% } %>
+              <% subset.forEach(function(a){ %>
+                <div
+                  class="av-mini-card av-watermark"
+                  data-id="<%= a.id %>"
+                  data-subject="<%= a.subjectSlug %>"
+                  data-type="<%= a.fileType %>"
+                >
+                  <div class="av-mini-main">
+                    <h4><%= a.title %></h4>
+                    <p><%= a.description || 'No description' %></p>
+                  </div>
+                  <div class="av-mini-meta">
+                    <span><%= a.fileType.toUpperCase() %></span>
+                    <a href="/file/<%= a.id %>/preview" target="_blank" class="av-link">View</a>
+                    <a href="/file/<%= a.id %>/download" class="av-link">Download</a>
+                  </div>
+                  <% if (isOwner) { %>
+                    <form action="/assignments/<%= a.id %>/delete" method="POST" onsubmit="return confirm('Delete this assignment?');">
+                      <button class="av-link-danger" type="submit">Delete</button>
+                    </form>
+                  <% } %>
+                  <span class="av-watermark-text">HC</span>
+                </div>
+              <% }) %>
+            </div>
+          </article>
+        <% }) %>
+      </div>
+    </div>
+  </section>
+
+  <% if (isOwner) { %>
+    <section class="av-section">
+      <div class="av-section-header">
+        <h2>Owner Upload Panel</h2>
+        <p>Only visible to Harshita using the owner passcode.</p>
+      </div>
+      <div class="av-owner-panel">
+        <form action="/upload" method="POST" enctype="multipart/form-data" class="av-upload-form" id="uploadForm">
+          <div class="av-upload-fields">
+            <label class="av-field">
+              <span class="av-field-label">Subject</span>
+              <select name="subjectSlug" required class="av-select">
+                <option value="" disabled selected>Select subject</option>
+                <% subjects.forEach(function(sub){ %>
+                  <option value="<%= sub.slug %>"><%= sub.name %></option>
+                <% }) %>
+              </select>
+            </label>
+
+            <label class="av-field">
+              <span class="av-field-label">Title</span>
+              <input type="text" name="title" placeholder="e.g. DMS Assignment 3" required />
+            </label>
+
+            <label class="av-field">
+              <span class="av-field-label">Description</span>
+              <textarea name="description" rows="2" placeholder="Short context or notes (optional)"></textarea>
+            </label>
+          </div>
+
+          <div class="av-dropzone" id="dropzone">
+            <input type="file" id="fileInput" name="file" accept=".jpg,.jpeg,.png,.pdf" required />
+            <p class="av-dropzone-text">Drag &amp; drop a single JPG, PNG, or PDF here, or click to browse.</p>
+          </div>
+
+          <button type="submit" class="av-button-primary">Upload Assignment</button>
+        </form>
+      </div>
+    </section>
+  <% } %>
+</section>
