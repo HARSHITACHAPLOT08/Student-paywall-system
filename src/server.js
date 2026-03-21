@@ -10,8 +10,8 @@ const compression = require('compression');
 const expressLayouts = require('express-ejs-layouts');
 const crypto = require('crypto');
 const Razorpay = require('razorpay');
+const mongoose = require('mongoose');
 
-const { connectToDatabase } = require('./db');
 const AccessPass = require('./accessPassModel');
 const { getAllAssignments } = require('./store');
 const uploadRouter = require('./uploadRoutes');
@@ -56,7 +56,7 @@ if (!SESSION_SECRET) {
 
 app.use(
   session({
-    secret: SESSION_SECRET,
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -219,8 +219,6 @@ app.post('/api/payment/verify', async (req, res) => {
       return res.status(400).json({ error: 'Payment verification failed' });
     }
 
-    await connectToDatabase();
-
     const pass = await AccessPass.findOne({
       razorpayOrderId: razorpay_order_id,
     });
@@ -265,13 +263,10 @@ app.post('/login/passcode', async (req, res) => {
       return res.redirect('/');
     }
 
-    await connectToDatabase();
-
     const pass = await AccessPass.findOne({
       studentName: studentName.trim(),
       passcode: passcode.trim().toUpperCase(),
     });
-
     if (!pass) {
       req.flash('error', 'Invalid passcode or name.');
       return res.redirect('/');
@@ -337,7 +332,6 @@ app.get('/dashboard', requireAuth, async (req, res) => {
 // Owner-only access log for payments / passes
 app.get('/admin/access-log', requireOwner, async (req, res) => {
   try {
-    await connectToDatabase();
     const passes = await AccessPass.find()
       .sort({ createdAt: -1 })
       .limit(50)
@@ -396,8 +390,24 @@ app.use((req, res) => {
   return res.status(404).json({ error: 'Not found' });
 });
 
-// Start server
+// Start server after MongoDB is connected
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Assignment Vault running on http://localhost:${PORT}`);
-});
+const MONGODB_URI = process.env.MONGODB_URI;
+
+if (!MONGODB_URI) {
+  console.error('MONGODB_URI is not set. Define it in your environment variables.');
+  process.exit(1);
+}
+
+mongoose
+  .connect(MONGODB_URI)
+  .then(() => {
+    console.log('MongoDB Connected');
+    app.listen(PORT, () => {
+      console.log(`Assignment Vault running on http://localhost:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('MongoDB Error:', err);
+    process.exit(1);
+  });
