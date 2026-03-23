@@ -148,8 +148,8 @@ app.post('/login', (req, res) => {
   res.redirect('/dashboard');
 });
 
-// API: create Razorpay order for ₹5
-app.post('/api/payment/order', async (req, res) => {
+// Shared handler to create a Razorpay order for ₹5
+async function handleCreateOrder(req, res) {
   try {
     const { studentName, contact } = req.body;
     if (!studentName || typeof studentName !== 'string' || !studentName.trim()) {
@@ -170,8 +170,6 @@ app.post('/api/payment/order', async (req, res) => {
         studentName: studentName.trim(),
       },
     });
-
-    await connectToDatabase();
 
     await AccessPass.create({
       studentName: studentName.trim(),
@@ -196,7 +194,12 @@ app.post('/api/payment/order', async (req, res) => {
       'Unable to initiate payment';
     return res.status(500).json({ error: message });
   }
-});
+}
+
+// Primary API used by frontend JS
+app.post('/api/payment/order', handleCreateOrder);
+// Alternate route for compatibility with deployment expectations
+app.post('/create-order', handleCreateOrder);
 
 // API: verify Razorpay payment and generate one-time passcode (no login yet)
 app.post('/api/payment/verify', async (req, res) => {
