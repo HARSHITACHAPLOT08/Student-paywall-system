@@ -1,79 +1,107 @@
-const fs = require('fs');
-const path = require('path');
 const { nanoid } = require('nanoid');
-const { getDataFile } = require('./storage');
-
-const DATA_FILE = getDataFile('assignments.json');
-
-function ensureStore() {
-  if (!fs.existsSync(DATA_FILE)) {
-    fs.writeFileSync(DATA_FILE, JSON.stringify({ assignments: [] }, null, 2));
-  }
-}
-
-function readStore() {
-  ensureStore();
-  const raw = fs.readFileSync(DATA_FILE, 'utf-8');
-  return JSON.parse(raw);
-}
-
-function writeStore(data) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-}
+const Assignment = require('./assignmentModel');
 
 async function getAllAssignments() {
-  const data = readStore();
-  return data.assignments || [];
+  const docs = await Assignment.find({}).sort({ uploadedAt: -1 }).lean();
+  return docs.map((doc) => ({
+    id: doc.id,
+    subjectSlug: doc.subjectSlug,
+    title: doc.title,
+    description: doc.description,
+    filename: null,
+    originalName: doc.originalName,
+    fileType: doc.fileType,
+    uploadedAt: doc.uploadedAt ? doc.uploadedAt.getTime() : Date.now(),
+    fileUrl: doc.fileUrl,
+  }));
 }
 
 async function addAssignment({
   subjectSlug,
   title,
   description,
-  filename,
+  fileUrl,
   originalName,
   fileType,
 }) {
-  const data = readStore();
-  const assignment = {
-    id: nanoid(),
+  const id = nanoid();
+  const doc = await Assignment.create({
+    id,
     subjectSlug,
     title,
     description,
-    filename,
+    fileUrl,
     originalName,
-    fileType, // 'image' or 'pdf'
-    uploadedAt: Date.now(),
+    fileType,
+    uploadedAt: new Date(),
+  });
+  return {
+    id: doc.id,
+    subjectSlug: doc.subjectSlug,
+    title: doc.title,
+    description: doc.description,
+    filename: null,
+    originalName: doc.originalName,
+    fileType: doc.fileType,
+    uploadedAt: doc.uploadedAt.getTime(),
+    fileUrl: doc.fileUrl,
   };
-  data.assignments.push(assignment);
-  writeStore(data);
-  return assignment;
 }
 
 async function deleteAssignment(id) {
-  const data = readStore();
-  const index = data.assignments.findIndex((a) => a.id === id);
-  if (index === -1) return null;
-  const [removed] = data.assignments.splice(index, 1);
-  writeStore(data);
-  return removed;
+  const doc = await Assignment.findOneAndDelete({ id }).lean();
+  if (!doc) return null;
+  return {
+    id: doc.id,
+    subjectSlug: doc.subjectSlug,
+    title: doc.title,
+    description: doc.description,
+    filename: null,
+    originalName: doc.originalName,
+    fileType: doc.fileType,
+    uploadedAt: doc.uploadedAt ? doc.uploadedAt.getTime() : Date.now(),
+    fileUrl: doc.fileUrl,
+  };
 }
 
 async function updateAssignmentFile(id, { filename, originalName, fileType }) {
-  const data = readStore();
-  const assignment = data.assignments.find((a) => a.id === id);
-  if (!assignment) return null;
-  assignment.filename = filename;
-  assignment.originalName = originalName;
-  assignment.fileType = fileType;
-  assignment.uploadedAt = Date.now();
-  writeStore(data);
-  return assignment;
+  const doc = await Assignment.findOneAndUpdate(
+    { id },
+    {
+      originalName,
+      fileType,
+      uploadedAt: new Date(),
+    },
+    { new: true }
+  ).lean();
+  if (!doc) return null;
+  return {
+    id: doc.id,
+    subjectSlug: doc.subjectSlug,
+    title: doc.title,
+    description: doc.description,
+    filename: null,
+    originalName: doc.originalName,
+    fileType: doc.fileType,
+    uploadedAt: doc.uploadedAt ? doc.uploadedAt.getTime() : Date.now(),
+    fileUrl: doc.fileUrl,
+  };
 }
 
 async function getAssignmentById(id) {
-  const data = readStore();
-  return data.assignments.find((a) => a.id === id) || null;
+  const doc = await Assignment.findOne({ id }).lean();
+  if (!doc) return null;
+  return {
+    id: doc.id,
+    subjectSlug: doc.subjectSlug,
+    title: doc.title,
+    description: doc.description,
+    filename: null,
+    originalName: doc.originalName,
+    fileType: doc.fileType,
+    uploadedAt: doc.uploadedAt ? doc.uploadedAt.getTime() : Date.now(),
+    fileUrl: doc.fileUrl,
+  };
 }
 
 module.exports = {

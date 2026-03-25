@@ -87,7 +87,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Razorpay setup (₹5 fixed payment)
+// Razorpay setup (₹10 fixed payment)
 const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
 const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
 
@@ -148,7 +148,7 @@ app.post('/login', (req, res) => {
   res.redirect('/dashboard');
 });
 
-// Shared handler to create a Razorpay order for ₹5
+// Shared handler to create a Razorpay order for ₹10
 async function handleCreateOrder(req, res) {
   try {
     const { studentName, contact } = req.body;
@@ -160,7 +160,7 @@ async function handleCreateOrder(req, res) {
       return res.status(500).json({ error: 'Payment gateway is not configured' });
     }
 
-    const amount = 5 * 100; // ₹5 in paise
+    const amount = 10 * 100; // ₹10 in paise
 
     const order = await razorpay.orders.create({
       amount,

@@ -7,13 +7,15 @@ const { requireAuth, requireOwner } = require('./sessionMiddleware');
 const { SUBJECTS } = require('./subjects');
 const { addAssignment, deleteAssignment, updateAssignmentFile, getAssignmentById } = require('./store');
 const { uploadsRoot } = require('./storage');
+const cloudinary = require('../config/cloudinary');
 
 const router = express.Router();
 
+// Use disk storage as a temporary location; files are then pushed to Cloudinary
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const subjectSlug = req.body.subjectSlug;
-    const subjectDir = path.join(uploadsRoot, subjectSlug || 'general');
+    const subjectSlug = req.body.subjectSlug || 'general';
+    const subjectDir = path.join(uploadsRoot, subjectSlug);
     if (!fs.existsSync(subjectDir)) {
       fs.mkdirSync(subjectDir, { recursive: true });
     }
@@ -57,14 +59,29 @@ router.post('/upload', requireAuth, requireOwner, upload.single('file'), async (
 
     const fileType = req.file.mimetype === 'application/pdf' ? 'pdf' : 'image';
 
+    // Upload the received file to Cloudinary
+    const uploadResult = await cloudinary.uploader.upload(req.file.path, {
+      resource_type: 'auto',
+      folder: `assignment-vault/${subjectSlug}`,
+    });
+
+    const fileUrl = uploadResult.secure_url;
+
     await addAssignment({
       subjectSlug,
       title: title.trim(),
       description: (description || '').trim(),
-      filename: path.relative(uploadsRoot, req.file.path),
+      fileUrl,
       originalName: req.file.originalname,
       fileType,
     });
+
+    // Best-effort cleanup of the temporary local file
+    try {
+      if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+    } catch (_) {}
 
     req.flash('success', 'Assignment uploaded successfully.');
     res.redirect('/dashboard');
@@ -79,10 +96,7 @@ router.post('/assignments/:id/delete', requireAuth, requireOwner, async (req, re
   try {
     const assignment = await deleteAssignment(req.params.id);
     if (assignment) {
-      const filePath = path.join(uploadsRoot, assignment.filename);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
+      // Optionally: delete from Cloudinary if public_id is stored in future
       req.flash('success', 'Assignment deleted.');
     } else {
       req.flash('error', 'Assignment not found.');
@@ -107,18 +121,26 @@ router.post('/assignments/:id/replace', requireAuth, requireOwner, upload.single
       return res.redirect('/dashboard');
     }
 
-    const oldPath = path.join(uploadsRoot, existing.filename);
-    if (fs.existsSync(oldPath)) {
-      fs.unlinkSync(oldPath);
-    }
-
     const fileType = req.file.mimetype === 'application/pdf' ? 'pdf' : 'image';
 
+    const uploadResult = await cloudinary.uploader.upload(req.file.path, {
+      resource_type: 'auto',
+      folder: `assignment-vault/${existing.subjectSlug}`,
+    });
+
+    const fileUrl = uploadResult.secure_url;
+
     await updateAssignmentFile(existing.id, {
-      filename: path.relative(uploadsRoot, req.file.path),
+      fileUrl,
       originalName: req.file.originalname,
       fileType,
     });
+
+    try {
+      if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+    } catch (_) {}
 
     req.flash('success', 'Assignment file replaced.');
     res.redirect('/dashboard');

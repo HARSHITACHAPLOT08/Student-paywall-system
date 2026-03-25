@@ -187,7 +187,7 @@
           amount: orderData.amount,
           currency: orderData.currency,
           name: 'Assignment Vault Access',
-          description: 'One-time ₹5 unlock for assignments dashboard',
+          description: 'One-time ₹10 unlock for assignments dashboard',
           order_id: orderData.orderId,
           prefill: {
             name: studentName,
@@ -222,14 +222,14 @@
               }
               if (payButton) {
                 payButton.disabled = false;
-                payButton.textContent = 'Pay ₹5 to Unlock';
+                payButton.textContent = 'Pay ₹10 to Unlock';
               }
             } catch (err) {
               console.error(err);
               alert(err.message || 'Payment verification failed.');
               if (payButton) {
                 payButton.disabled = false;
-                payButton.textContent = 'Pay ₹5 to Unlock';
+                payButton.textContent = 'Pay ₹10 to Unlock';
               }
             }
           },
@@ -237,7 +237,7 @@
             ondismiss: function () {
               if (payButton) {
                 payButton.disabled = false;
-                payButton.textContent = 'Pay ₹5 to Unlock';
+                payButton.textContent = 'Pay ₹10 to Unlock';
               }
             },
           },
@@ -250,7 +250,7 @@
         alert(err.message || 'Unable to start payment.');
         if (payButton) {
           payButton.disabled = false;
-          payButton.textContent = 'Pay ₹5 to Unlock';
+          payButton.textContent = 'Pay ₹10 to Unlock';
         }
       }
     });
