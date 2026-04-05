@@ -9,8 +9,16 @@ router.get('/file/:id/preview', requireAuth, async (req, res) => {
   if (!assignment || !assignment.fileUrl) {
     return res.status(404).send('File not found');
   }
-  // Redirect to the Cloudinary URL; browser will handle viewing
-  res.redirect(assignment.fileUrl);
+  
+  // For PDFs (raw files), append ?fl=attachment:false to force inline viewing
+  let previewUrl = assignment.fileUrl;
+  if (assignment.fileType === 'pdf') {
+    previewUrl = assignment.fileUrl.includes('?') 
+      ? `${assignment.fileUrl}&fl=attachment:false`
+      : `${assignment.fileUrl}?fl=attachment:false`;
+  }
+  
+  res.redirect(previewUrl);
 });
 
 router.get('/file/:id/download', requireAuth, async (req, res) => {
@@ -18,8 +26,13 @@ router.get('/file/:id/download', requireAuth, async (req, res) => {
   if (!assignment || !assignment.fileUrl) {
     return res.status(404).send('File not found');
   }
-  // Let the browser download from Cloudinary directly
-  res.redirect(assignment.fileUrl);
+  
+  // Append ?dl=true to force download behavior
+  let downloadUrl = assignment.fileUrl.includes('?')
+    ? `${assignment.fileUrl}&dl=true`
+    : `${assignment.fileUrl}?dl=true`;
+  
+  res.redirect(downloadUrl);
 });
 
 module.exports = router;
