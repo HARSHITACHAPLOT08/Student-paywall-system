@@ -61,12 +61,14 @@ router.post('/upload', requireAuth, requireOwner, upload.single('file'), async (
 
     // Upload the received file to Cloudinary
     const uploadResult = await cloudinary.uploader.upload(req.file.path, {
-      resource_type: fileType === 'pdf' ? 'raw' : 'image',
-      flags: 'attachment:false',
+      resource_type: 'raw',
+      type: 'upload',
+      access_mode: 'public',
       folder: `assignment-vault/${subjectSlug}`,
     });
 
     const fileUrl = uploadResult.secure_url;
+    console.log('CLOUDINARY URL:', fileUrl);
 
     await addAssignment({
       subjectSlug,
@@ -125,12 +127,14 @@ router.post('/assignments/:id/replace', requireAuth, requireOwner, upload.single
     const fileType = req.file.mimetype === 'application/pdf' ? 'pdf' : 'image';
 
     const uploadResult = await cloudinary.uploader.upload(req.file.path, {
-      resource_type: fileType === 'pdf' ? 'raw' : 'image',
-      flags: 'attachment:false',
+      resource_type: 'raw',
+      type: 'upload',
+      access_mode: 'public',
       folder: `assignment-vault/${existing.subjectSlug}`,
     });
 
     const fileUrl = uploadResult.secure_url;
+    console.log('CLOUDINARY URL:', fileUrl);
 
     await updateAssignmentFile(existing.id, {
       fileUrl,
