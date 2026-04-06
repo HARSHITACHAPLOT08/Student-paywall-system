@@ -31,9 +31,8 @@ app.use(helmet({
       "style-src": ["'self'", "'unsafe-inline'"],
       "font-src": ["'self'", 'https://fonts.gstatic.com', 'data:'],
       "connect-src": ["'self'", 'https://api.razorpay.com'],
-      "frame-src": ["'self'", 'https://api.razorpay.com', 'https://*.razorpay.com', 'https://res.cloudinary.com'],
+      "frame-src": ["'self'", 'https://api.razorpay.com', 'https://*.razorpay.com'],
       "object-src": ["'none'"],
-      "child-src": ['https://res.cloudinary.com'],
     }
   }
 }));

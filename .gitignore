@@ -5,3 +5,4 @@ storage/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+drive-key.json

@@ -10,8 +10,7 @@ router.get('/file/:id/preview', requireAuth, async (req, res) => {
     return res.status(404).send('File not found');
   }
   
-  // URL already includes fl_attachment:false in path from upload
-  // Redirect to Cloudinary URL for inline viewing
+  // Redirect to Google Drive URL for viewing
   res.redirect(assignment.fileUrl);
 });
 

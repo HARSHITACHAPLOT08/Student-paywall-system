@@ -7,11 +7,11 @@ const { requireAuth, requireOwner } = require('./sessionMiddleware');
 const { SUBJECTS } = require('./subjects');
 const { addAssignment, deleteAssignment, updateAssignmentFile, getAssignmentById } = require('./store');
 const { uploadsRoot } = require('./storage');
-const cloudinary = require('../config/cloudinary');
+const { uploadFile } = require('./utils/drive');
 
 const router = express.Router();
 
-// Use disk storage as a temporary location; files are then pushed to Cloudinary
+// Use disk storage as a temporary location; files are then pushed to Google Drive
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     const subjectSlug = req.body.subjectSlug || 'general';
@@ -59,17 +59,18 @@ router.post('/upload', requireAuth, requireOwner, upload.single('file'), async (
 
     const fileType = req.file.mimetype === 'application/pdf' ? 'pdf' : 'image';
 
-    // Upload the received file to Cloudinary
-    const uploadResult = await cloudinary.uploader.upload(req.file.path, {
-      resource_type: 'raw',
-      type: 'upload',
-      folder: `assignment-vault/${subjectSlug}`,
-    });
-
-    let fileUrl = uploadResult.secure_url;
-    // Inject fl_attachment:false to force inline viewing and bypass restricted settings
-    fileUrl = fileUrl.replace('/upload/', '/upload/fl_attachment:false/');
-    console.log('FINAL WORKING URL:', fileUrl);
+    // Upload the received file to Google Drive
+    let fileUrl;
+    try {
+      fileUrl = await uploadFile(
+        req.file.path,
+        req.file.originalname,
+        process.env.GDRIVE_FOLDER_ID
+      );
+    } catch (err) {
+      console.error('Drive Upload Error:', err);
+      throw new Error('Upload to Google Drive failed');
+    }
 
     await addAssignment({
       subjectSlug,
@@ -100,7 +101,7 @@ router.post('/assignments/:id/delete', requireAuth, requireOwner, async (req, re
   try {
     const assignment = await deleteAssignment(req.params.id);
     if (assignment) {
-      // Optionally: delete from Cloudinary if public_id is stored in future
+      // Optionally: delete from Google Drive if file ID is stored in future
       req.flash('success', 'Assignment deleted.');
     } else {
       req.flash('error', 'Assignment not found.');
@@ -127,16 +128,18 @@ router.post('/assignments/:id/replace', requireAuth, requireOwner, upload.single
 
     const fileType = req.file.mimetype === 'application/pdf' ? 'pdf' : 'image';
 
-    const uploadResult = await cloudinary.uploader.upload(req.file.path, {
-      resource_type: 'raw',
-      type: 'upload',
-      folder: `assignment-vault/${existing.subjectSlug}`,
-    });
-
-    let fileUrl = uploadResult.secure_url;
-    // Inject fl_attachment:false to force inline viewing and bypass restricted settings
-    fileUrl = fileUrl.replace('/upload/', '/upload/fl_attachment:false/');
-    console.log('FINAL WORKING URL:', fileUrl);
+    // Upload the replacement file to Google Drive
+    let fileUrl;
+    try {
+      fileUrl = await uploadFile(
+        req.file.path,
+        req.file.originalname,
+        process.env.GDRIVE_FOLDER_ID
+      );
+    } catch (err) {
+      console.error('Drive Upload Error:', err);
+      throw new Error('Upload to Google Drive failed');
+    }
 
     await updateAssignmentFile(existing.id, {
       fileUrl,
