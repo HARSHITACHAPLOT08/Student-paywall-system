@@ -6,20 +6,17 @@ const multer = require('multer');
 const { requireAuth, requireOwner } = require('./sessionMiddleware');
 const { SUBJECTS } = require('./subjects');
 const { addAssignment, deleteAssignment, updateAssignmentFile, getAssignmentById } = require('./store');
-const { uploadsRoot } = require('./storage');
-const { uploadFile } = require('./utils/drive');
 
 const router = express.Router();
 
-// Use disk storage as a temporary location; files are then pushed to Google Drive
+// Ensure uploads dir exists at project root `/uploads`
+const uploadsDir = path.join(__dirname, '..', 'uploads');
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+
+// Multer: store files directly in /uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const subjectSlug = req.body.subjectSlug || 'general';
-    const subjectDir = path.join(uploadsRoot, subjectSlug);
-    if (!fs.existsSync(subjectDir)) {
-      fs.mkdirSync(subjectDir, { recursive: true });
-    }
-    cb(null, subjectDir);
+    cb(null, uploadsDir);
   },
   filename: function (req, file, cb) {
     const timestamp = Date.now();
@@ -59,18 +56,9 @@ router.post('/upload', requireAuth, requireOwner, upload.single('file'), async (
 
     const fileType = req.file.mimetype === 'application/pdf' ? 'pdf' : 'image';
 
-    // Upload the received file to Google Drive
-    let fileUrl;
-    try {
-      fileUrl = await uploadFile(
-        req.file.path,
-        req.file.originalname,
-        process.env.GDRIVE_FOLDER_ID
-      );
-    } catch (err) {
-      console.error('Drive Upload Error:', err);
-      throw new Error('Upload to Google Drive failed');
-    }
+    // Build local fileUrl and save assignment record
+    const filename = path.basename(req.file.path);
+    const fileUrl = `/uploads/${filename}`;
 
     await addAssignment({
       subjectSlug,
@@ -81,12 +69,7 @@ router.post('/upload', requireAuth, requireOwner, upload.single('file'), async (
       fileType,
     });
 
-    // Best-effort cleanup of the temporary local file
-    try {
-      if (req.file && req.file.path && fs.existsSync(req.file.path)) {
-        fs.unlinkSync(req.file.path);
-      }
-    } catch (_) {}
+    // No cleanup needed: file is stored permanently under /uploads
 
     req.flash('success', 'Assignment uploaded successfully.');
     res.redirect('/dashboard');
@@ -128,30 +111,15 @@ router.post('/assignments/:id/replace', requireAuth, requireOwner, upload.single
 
     const fileType = req.file.mimetype === 'application/pdf' ? 'pdf' : 'image';
 
-    // Upload the replacement file to Google Drive
-    let fileUrl;
-    try {
-      fileUrl = await uploadFile(
-        req.file.path,
-        req.file.originalname,
-        process.env.GDRIVE_FOLDER_ID
-      );
-    } catch (err) {
-      console.error('Drive Upload Error:', err);
-      throw new Error('Upload to Google Drive failed');
-    }
+    // Use local uploads folder for replacement
+    const filename = path.basename(req.file.path);
+    const fileUrl = `/uploads/${filename}`;
 
     await updateAssignmentFile(existing.id, {
       fileUrl,
       originalName: req.file.originalname,
       fileType,
     });
-
-    try {
-      if (req.file && req.file.path && fs.existsSync(req.file.path)) {
-        fs.unlinkSync(req.file.path);
-      }
-    } catch (_) {}
 
     req.flash('success', 'Assignment file replaced.');
     res.redirect('/dashboard');

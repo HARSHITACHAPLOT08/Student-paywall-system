@@ -27,6 +27,13 @@
   box-sizing: border-box;
 }
 
+/* Strong selection prevention (deterrence) */
+* {
+  -webkit-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+}
+
 body.av-body {
   margin: 0;
   min-height: 100vh;
@@ -639,6 +646,54 @@ body.av-body {
   color: rgba(148, 163, 255, 0.08);
   pointer-events: none;
   user-select: none;
+}
+
+/* Secure content blur wrapper used for viewer pages */
+.secure-content {
+  position: relative;
+  filter: blur(12px);
+  transition: filter 0.28s ease;
+}
+.secure-content:hover,
+.secure-content.active {
+  filter: blur(0px);
+}
+.secure-content::after {
+  content: "Hover to view";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #fff;
+  font-size: 18px;
+  background: rgba(0,0,0,0.6);
+  padding: 8px 14px;
+  border-radius: 8px;
+  pointer-events: none;
+  z-index: 30;
+}
+.secure-content.active::after {
+  display: none;
+}
+.secure-content .secure-blocker {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  background: transparent;
+}
+.secure-content.active .secure-blocker { display: none; }
+
+/* Watermark fixed overlay */
+#watermark {
+  position: fixed;
+  top: 40%;
+  left: 20%;
+  opacity: 0.08;
+  font-size: 40px;
+  pointer-events: none;
+  z-index: 9999;
+  transform: rotate(-30deg);
+  color: #fff;
 }
 
 @media (max-width: 900px) {

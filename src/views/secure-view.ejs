@@ -1,0 +1,37 @@
+<section class="av-secure-view">
+  <header class="av-secure-header">
+    <h1><%= assignment.title %></h1>
+    <p class="av-secure-meta">Requested by: <%= currentUser?.name || 'Guest' %></p>
+  </header>
+
+  <div class="av-secure-frame" style="position:relative;">
+    <div class="secure-content" style="position:relative;">
+      <div class="secure-blocker"></div>
+      <iframe src="<%= viewerUrl %>" width="100%" height="720" style="border:0;background:#fff;position:relative;z-index:20;"></iframe>
+    </div>
+
+    <!-- Watermark overlay (fallback) -->
+    <div style="position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;display:flex;align-items:flex-start;justify-content:flex-start;padding:16px;z-index:50;">
+      <div style="opacity:0.12;color:#000;font-weight:600;font-size:18px;transform:rotate(-20deg);">
+        <%= (currentUser && currentUser.name) ? currentUser.name : 'Unknown' %> — <%= new Date().toLocaleString() %>
+      </div>
+    </div>
+    
+    <!-- Page-level watermark (in case security.js inserts it too) -->
+    <div id="watermark" style="display:none;"></div>
+    <script>
+      // Expose current user name for security script
+      window.AV_CURRENT_USER_NAME = '<%= (currentUser && currentUser.name) ? currentUser.name.replace(/'/g, "\\'") : '' %>';
+      // Populate page watermark element
+      (function(){
+        try{
+          var el = document.getElementById('watermark');
+          if (el && window.AV_CURRENT_USER_NAME) {
+            el.textContent = window.AV_CURRENT_USER_NAME + ' | ' + new Date().toLocaleString();
+            el.style.display = 'block';
+          }
+        }catch(_){}
+      })();
+    </script>
+  </div>
+</section>

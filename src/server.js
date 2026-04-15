@@ -47,6 +47,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
+// Serve uploaded files from /uploads
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // Sessions
 const SESSION_SECRET = process.env.SESSION_SECRET;
@@ -130,8 +132,12 @@ app.post('/login', (req, res) => {
     return res.redirect('/');
   }
 
+  // Normalize inputs to avoid false negatives from accidental spaces
+  const supplied = (passcode || '').toString().trim();
+  const expected = (OWNER_PASSCODE || '').toString().trim();
+
   let role = null;
-  if (passcode === OWNER_PASSCODE) {
+  if (supplied && expected && supplied === expected) {
     role = 'owner';
   }
 
@@ -301,6 +307,11 @@ app.post('/login/passcode', async (req, res) => {
       passcode: pass.passcode,
     };
 
+    // Mark paid access in session and set expiry (default 24 hours)
+    req.session.isPaid = true;
+    const hours = parseInt(process.env.ACCESS_EXPIRE_HOURS || '24', 10);
+    req.session.expiry = Date.now() + hours * 60 * 60 * 1000;
+
     return res.redirect('/dashboard');
   } catch (err) {
     console.error('Error during passcode login', err);
@@ -330,6 +341,7 @@ app.get('/dashboard', requireAuth, async (req, res) => {
     labSubjects: LAB_SUBJECTS,
     assignments,
     recentAssignments,
+    expiry: req.session ? req.session.expiry || null : null,
   });
 });
 

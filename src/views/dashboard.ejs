@@ -239,3 +239,61 @@
     </section>
   <% } %>
 </section>
+<script>
+  (function(){
+    const expiry = <%= expiry ? expiry : 'null' %>;
+    function showRepayButton(){
+      if (document.getElementById('repayBtn')) return;
+      const btn = document.createElement('button');
+      btn.id = 'repayBtn';
+      btn.textContent = 'Pay Again';
+      btn.style.background = '#ff4d4d';
+      btn.style.color = '#fff';
+      btn.style.padding = '8px 14px';
+      btn.style.border = 'none';
+      btn.style.borderRadius = '8px';
+      btn.style.cursor = 'pointer';
+      btn.style.marginLeft = '12px';
+      btn.onclick = function(){ window.location.href = '/'; };
+      const container = document.querySelector('.av-dashboard-actions');
+      if (container) container.appendChild(btn);
+    }
+
+    function disableViewButtons(){
+      document.querySelectorAll('a[href*="/file/"]').forEach(function(a){
+        a.dataset.disabled = '1';
+        a.style.pointerEvents = 'none';
+        a.style.opacity = '0.6';
+        a.title = 'Access expired, please pay again';
+      });
+    }
+
+    if (!expiry) return;
+
+    const timerEl = document.createElement('div');
+    timerEl.id = 'countdownTimer';
+    timerEl.style.color = '#ffb4b4';
+    timerEl.style.margin = '0 12px';
+    timerEl.style.fontSize = '13px';
+    const actions = document.querySelector('.av-dashboard-actions');
+    if (actions) actions.insertBefore(timerEl, actions.firstChild);
+
+    function updateTimer(){
+      const now = Date.now();
+      const diff = expiry - now;
+      if (diff <= 0) {
+        timerEl.innerText = 'Access expired';
+        disableViewButtons();
+        showRepayButton();
+        return;
+      }
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const mins = Math.floor((diff / (1000 * 60)) % 60);
+      const secs = Math.floor((diff / 1000) % 60);
+      timerEl.innerText = `Access expires in ${hours}h ${mins}m ${secs}s`;
+    }
+
+    updateTimer();
+    setInterval(updateTimer, 1000);
+  })();
+</script>
