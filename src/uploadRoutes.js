@@ -84,7 +84,13 @@ router.post('/assignments/:id/delete', requireAuth, requireOwner, async (req, re
   try {
     const assignment = await deleteAssignment(req.params.id);
     if (assignment) {
-      // Optionally: delete from Google Drive if file ID is stored in future
+      // If file was stored locally, attempt to remove it
+      try {
+        if (assignment.fileUrl && assignment.fileUrl.startsWith('/uploads/')) {
+          const localPath = path.join(__dirname, '..', assignment.fileUrl);
+          if (fs.existsSync(localPath)) fs.unlinkSync(localPath);
+        }
+      } catch (_) {}
       req.flash('success', 'Assignment deleted.');
     } else {
       req.flash('error', 'Assignment not found.');
