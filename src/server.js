@@ -19,7 +19,14 @@ const fileRouter = require('./fileRoutes');
 const { requireAuth, requireOwner } = require('./sessionMiddleware');
 const { SUBJECTS, THEORY_SUBJECTS, LAB_SUBJECTS } = require('./subjects');
 
+const rateLimit = require('express-rate-limit');
+
 const app = express();
+
+// Prefer trusting proxy when running behind a load balancer (e.g., Render, Heroku)
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
 
 // Security & performance middlewares
 app.use(helmet({
@@ -56,6 +63,7 @@ if (!SESSION_SECRET) {
   process.exit(1);
 }
 
+const isProd = process.env.NODE_ENV === 'production';
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
@@ -64,6 +72,7 @@ app.use(
     cookie: {
       httpOnly: true,
       sameSite: 'lax',
+      secure: isProd, // secure cookies in production
       maxAge: 30 * 60 * 1000, // 30 minutes
     },
   })
@@ -122,8 +131,25 @@ app.get('/', (req, res) => {
   });
 });
 
+// Rate limiters for sensitive endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // limit each IP to 10 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Too many login attempts from this IP, please try again later.',
+});
+
+const paymentLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30, // allow more attempts for payment flows
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Too many payment attempts, please try again later.',
+});
+
 // Owner-only manual login preserved for admin (no UI form by default)
-app.post('/login', (req, res) => {
+app.post('/login', authLimiter, (req, res) => {
   const { studentName, passcode } = req.body;
 
   if (!studentName || !passcode) {
@@ -203,12 +229,12 @@ async function handleCreateOrder(req, res) {
 }
 
 // Primary API used by frontend JS
-app.post('/api/payment/order', handleCreateOrder);
+app.post('/api/payment/order', paymentLimiter, handleCreateOrder);
 // Alternate route for compatibility with deployment expectations
-app.post('/create-order', handleCreateOrder);
+app.post('/create-order', paymentLimiter, handleCreateOrder);
 
 // API: verify Razorpay payment and generate one-time passcode (no login yet)
-app.post('/api/payment/verify', async (req, res) => {
+app.post('/api/payment/verify', paymentLimiter, async (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
@@ -263,7 +289,7 @@ app.post('/api/payment/verify', async (req, res) => {
 });
 
 // Passcode-based viewer login after payment
-app.post('/login/passcode', async (req, res) => {
+app.post('/login/passcode', authLimiter, async (req, res) => {
   try {
     const { studentName, passcode } = req.body;
 
@@ -405,20 +431,41 @@ app.use((req, res) => {
   return res.status(404).json({ error: 'Not found' });
 });
 
-// Start server after MongoDB is connected
+// Start server after MongoDB is connected with retry and graceful shutdown
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI;
 
-if (!MONGODB_URI) {
-  console.error('MONGODB_URI is not set. Define it in your environment variables.');
+// Validate critical environment variables up front
+const requiredEnvs = ['SESSION_SECRET', 'OWNER_PASSCODE', 'MONGODB_URI'];
+const missing = requiredEnvs.filter((k) => !process.env[k]);
+if (missing.length) {
+  console.error('Missing required environment variables:', missing.join(', '));
   process.exit(1);
 }
 
-mongoose
-  .connect(MONGODB_URI)
+async function connectWithRetry(retries = 5, delay = 3000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      await mongoose.connect(MONGODB_URI, { serverSelectionTimeoutMS: 5000 });
+      console.log('MongoDB Connected');
+      return;
+    } catch (err) {
+      console.error(`MongoDB connection attempt ${i + 1} failed:`, err.message || err);
+      if (i < retries - 1) {
+        console.log(`Retrying in ${delay}ms...`);
+        await new Promise((r) => setTimeout(r, delay));
+      } else {
+        throw err;
+      }
+    }
+  }
+}
+
+let server = null;
+
+connectWithRetry()
   .then(() => {
-    console.log('MongoDB Connected');
-    app.listen(PORT, () => {
+    server = app.listen(PORT, () => {
       console.log(`Assignment Vault running on http://localhost:${PORT}`);
     });
   })
@@ -426,3 +473,27 @@ mongoose
     console.error('MongoDB Error:', err);
     process.exit(1);
   });
+
+// Graceful shutdown
+function shutdown(signal) {
+  console.log(`Received ${signal}. Shutting down gracefully...`);
+  if (server) {
+    server.close(() => {
+      console.log('HTTP server closed.');
+      mongoose.disconnect().then(() => {
+        console.log('MongoDB disconnected.');
+        process.exit(0);
+      });
+    });
+    // Force exit if it takes too long
+    setTimeout(() => {
+      console.error('Forcing shutdown.');
+      process.exit(1);
+    }, 10000).unref();
+  } else {
+    process.exit(0);
+  }
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
