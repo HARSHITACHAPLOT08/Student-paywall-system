@@ -46,7 +46,7 @@
       </label>
 
       <button type="submit" class="av-button-primary av-button-wide" id="payButton">
-        Pay ₹10 to Unlock
+        Pay ₹20 to Unlock
       </button>
     </form>
 
@@ -136,7 +136,4 @@
 
 <% if (razorpayKeyId) { %>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-  <script>
-    window.AV_RAZORPAY_KEY_ID = '<%= razorpayKeyId %>';
-  </script>
 <% } %>

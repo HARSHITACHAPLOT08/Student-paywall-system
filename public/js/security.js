@@ -28,13 +28,20 @@
   });
 
   // Detect devtools (basic) and lock content
-  setInterval(function(){
-    try {
-      if (window.outerWidth - window.innerWidth > 160) {
-        document.body.innerHTML = '<div style="padding:40px;color:#fff;background:#000;">Access Restricted</div>';
-      }
-    } catch(_) {}
-  }, 1000);
+  var isLocalHost = false;
+  try {
+    isLocalHost = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+  } catch(_) {}
+
+  if (!isLocalHost) {
+    setInterval(function(){
+      try {
+        if (window.outerWidth - window.innerWidth > 160) {
+          document.body.innerHTML = '<div style="padding:40px;color:#fff;background:#000;">Access Restricted</div>';
+        }
+      } catch(_) {}
+    }, 1000);
+  }
 
   // Disable selection via style (redundant with CSS)
   try { document.body.style.userSelect = 'none'; } catch(_) {}
@@ -58,6 +65,10 @@
     if (!userName) {
       var el = document.querySelector('meta[name="av-user"]');
       if (el) userName = el.getAttribute('content');
+    }
+    if (!userName) {
+      var secureView = document.querySelector('.av-secure-view[data-current-user]');
+      if (secureView) userName = secureView.getAttribute('data-current-user');
     }
     if (userName) {
       var wm = document.createElement('div');

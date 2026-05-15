@@ -27,12 +27,12 @@ app.use(helmet({
     useDefaults: true,
     directives: {
       "img-src": ["'self'", 'data:', 'https://*'],
-      "script-src": ["'self'", 'https://checkout.razorpay.com'],
-      "style-src": ["'self'", "'unsafe-inline'"],
+        "script-src": ["'self'", 'https://checkout.razorpay.com', 'https://cdn.razorpay.com'],
+        "style-src": ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
       "font-src": ["'self'", 'https://fonts.gstatic.com', 'data:'],
-      "connect-src": ["'self'", 'https://api.razorpay.com'],
+      "connect-src": ["'self'", 'https://api.razorpay.com', 'https://lumberjack.razorpay.com'],
       "frame-src": ["'self'", 'https://api.razorpay.com', 'https://*.razorpay.com'],
-      "object-src": ["'none'"],
+      "object-src": ["'self'"],
     }
   }
 }));
@@ -46,7 +46,8 @@ app.set('layout', 'layout');
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-app.use(express.static(path.join(__dirname, '..', 'public')));
+// Serve static assets with no caching during development to ensure UI updates are loaded immediately
+app.use(express.static(path.join(__dirname, '..', 'public'), { maxAge: 0 }));
 
 // Sessions
 const SESSION_SECRET = process.env.SESSION_SECRET;
@@ -88,7 +89,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Razorpay setup (₹10 fixed payment)
+// Razorpay setup (₹20 fixed payment)
 const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
 const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
 
@@ -153,7 +154,7 @@ app.post('/login', (req, res) => {
   res.redirect('/dashboard');
 });
 
-// Shared handler to create a Razorpay order for ₹10
+// Shared handler to create a Razorpay order for ₹20
 async function handleCreateOrder(req, res) {
   try {
     const { studentName, contact } = req.body;
@@ -165,7 +166,7 @@ async function handleCreateOrder(req, res) {
       return res.status(500).json({ error: 'Payment gateway is not configured' });
     }
 
-    const amount = 10 * 100; // ₹10 in paise
+      const amount = 20 * 100; // ₹20 in paise
 
     const order = await razorpay.orders.create({
       amount,

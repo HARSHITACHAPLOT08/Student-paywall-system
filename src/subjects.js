@@ -1,14 +1,16 @@
 const SUBJECTS = [
-  { slug: 'dms', name: 'Discrete Mathematics Structure', type: 'theory' },
-  { slug: 'dccn', name: 'Data Communication and Computer Networks', type: 'theory' },
-  { slug: 'microprocessor', name: 'Microprocessor and Interfaces', type: 'theory' },
-  { slug: 'dbms', name: 'DBMS', type: 'theory' },
-  { slug: 'toc', name: 'Theory of Computation', type: 'theory' },
-  { slug: 'microprocessor-lab', name: 'Microprocessor and Interfaces Lab', type: 'lab' },
-  { slug: 'dbms-lab', name: 'DBMS Lab', type: 'lab' },
-  { slug: 'network-lab', name: 'Network Programming Lab', type: 'lab' },
-  { slug: 'linux-lab', name: 'Linux Shell Programming Lab', type: 'lab' },
-  { slug: 'java-lab', name: 'Java Lab', type: 'lab' },
+  { slug: 'information-theory-coding', name: 'Information Theory & Coding', type: 'theory' },
+  { slug: 'compiler-design', name: 'Compiler Design', type: 'theory' },
+  { slug: 'operating-system', name: 'Operating System', type: 'theory' },
+  { slug: 'computer-graphics-multimedia', name: 'Computer Graphics & Multimedia', type: 'theory' },
+  { slug: 'analysis-of-algorithms', name: 'Analysis of Algorithms', type: 'theory' },
+  { slug: 'wireless-communication', name: 'Wireless Communication', type: 'theory' },
+  { slug: 'human-computer-interaction', name: 'Human Computer Interaction', type: 'theory' },
+
+  { slug: 'compiler-design-lab', name: 'Compiler Design Lab', type: 'lab' },
+  { slug: 'advance-java-lab', name: 'Advance Java Lab', type: 'lab' },
+  { slug: 'computer-graphics-multimedia-lab', name: 'Computer Graphics & Multimedia Lab', type: 'lab' },
+  { slug: 'analysis-of-algorithms-lab', name: 'Analysis of Algorithms Lab', type: 'lab' },
 ];
 
 const THEORY_SUBJECTS = SUBJECTS.filter((s) => s.type === 'theory');

@@ -73,6 +73,68 @@
   if (subjectFilter) subjectFilter.addEventListener('change', fetchAssignments);
   if (typeFilter) typeFilter.addEventListener('change', fetchAssignments);
 
+  const dashboard = document.querySelector('.av-dashboard[data-expiry]');
+  if (dashboard) {
+    const expiryValue = dashboard.getAttribute('data-expiry');
+    const expiry = expiryValue ? Number(expiryValue) : null;
+
+    function showRepayButton() {
+      if (document.getElementById('repayBtn')) return;
+      const btn = document.createElement('button');
+      btn.id = 'repayBtn';
+      btn.textContent = 'Pay Again';
+      btn.style.background = '#ff4d4d';
+      btn.style.color = '#fff';
+      btn.style.padding = '8px 14px';
+      btn.style.border = 'none';
+      btn.style.borderRadius = '8px';
+      btn.style.cursor = 'pointer';
+      btn.style.marginLeft = '12px';
+      btn.onclick = function () {
+        window.location.href = '/';
+      };
+      const container = document.querySelector('.av-dashboard-actions');
+      if (container) container.appendChild(btn);
+    }
+
+    function disableViewButtons() {
+      document.querySelectorAll('a[href*="/file/"]').forEach(function (a) {
+        a.dataset.disabled = '1';
+        a.style.pointerEvents = 'none';
+        a.style.opacity = '0.6';
+        a.title = 'Access expired, please pay again';
+      });
+    }
+
+    if (expiry) {
+      const timerEl = document.createElement('div');
+      timerEl.id = 'countdownTimer';
+      timerEl.style.color = '#ffb4b4';
+      timerEl.style.margin = '0 12px';
+      timerEl.style.fontSize = '13px';
+      const actions = document.querySelector('.av-dashboard-actions');
+      if (actions) actions.insertBefore(timerEl, actions.firstChild);
+
+      function updateTimer() {
+        const now = Date.now();
+        const diff = expiry - now;
+        if (diff <= 0) {
+          timerEl.innerText = 'Access expired';
+          disableViewButtons();
+          showRepayButton();
+          return;
+        }
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        timerEl.innerText = `Access expires in ${hours}h ${minutes}m ${seconds}s`;
+        setTimeout(updateTimer, 1000);
+      }
+
+      updateTimer();
+    }
+  }
+
   const dropzone = document.getElementById('dropzone');
   const fileInput = document.getElementById('fileInput');
   if (dropzone && fileInput) {
@@ -187,7 +249,7 @@
           amount: orderData.amount,
           currency: orderData.currency,
           name: 'Assignment Vault Access',
-          description: 'One-time ₹10 unlock for assignments dashboard',
+          description: 'One-time ₹20 unlock for assignments dashboard',
           order_id: orderData.orderId,
           prefill: {
             name: studentName,
@@ -222,14 +284,14 @@
               }
               if (payButton) {
                 payButton.disabled = false;
-                payButton.textContent = 'Pay ₹10 to Unlock';
+                payButton.textContent = 'Pay ₹20 to Unlock';
               }
             } catch (err) {
               console.error(err);
               alert(err.message || 'Payment verification failed.');
               if (payButton) {
                 payButton.disabled = false;
-                payButton.textContent = 'Pay ₹10 to Unlock';
+                payButton.textContent = 'Pay ₹20 to Unlock';
               }
             }
           },
@@ -237,7 +299,7 @@
             ondismiss: function () {
               if (payButton) {
                 payButton.disabled = false;
-                payButton.textContent = 'Pay ₹10 to Unlock';
+                payButton.textContent = 'Pay ₹20 to Unlock';
               }
             },
           },
@@ -250,7 +312,7 @@
         alert(err.message || 'Unable to start payment.');
         if (payButton) {
           payButton.disabled = false;
-          payButton.textContent = 'Pay ₹10 to Unlock';
+          payButton.textContent = 'Pay ₹20 to Unlock';
         }
       }
     });
