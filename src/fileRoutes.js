@@ -85,7 +85,9 @@ router.get('/secure-view/:id', requireAuth, requirePaid, async (req, res) => {
   res.render('secure-view', {
     title: `Secure View | ${assignment.title}`,
     assignment,
-    viewerUrl: `/secure-file/${assignment.id}/raw?token=${encodeURIComponent(viewerToken)}`,
+    // provide token and id only (no direct URL exposure)
+    viewerToken: viewerToken,
+    assignmentId: assignment.id,
   });
 });
 
@@ -102,7 +104,11 @@ router.get('/secure-file/:id/raw', async (req, res) => {
       req.session.isPaid &&
       (!req.session.expiry || req.session.expiry > Date.now())
   );
-  const hasViewerToken = isViewerTokenValid(req.query.token, {
+  // Accept viewer token from query param or header (Bearer or x-viewer-token)
+  const headerToken = (req.get('Authorization') || '').replace(/^Bearer\s+/i, '') || req.get('x-viewer-token') || '';
+  const tokenToCheck = req.query.token || headerToken;
+
+  const hasViewerToken = isViewerTokenValid(tokenToCheck, {
     assignmentId: assignment.id,
     sessionId: req.sessionID || '',
     userName: req.session?.user?.name || '',
@@ -122,6 +128,8 @@ router.get('/secure-file/:id/raw', async (req, res) => {
   function setSecurityHeaders() {
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Referrer-Policy', 'no-referrer');
     // Content-Disposition set later when we know it's a PDF
     const origin = req.get('origin');
     const hostOrigin = `${req.protocol}://${req.get('host')}`;
@@ -131,6 +139,8 @@ router.get('/secure-file/:id/raw', async (req, res) => {
     } else {
       res.setHeader('Access-Control-Allow-Origin', hostOrigin);
     }
+    // Prevent embedding
+    res.setHeader('Content-Security-Policy', "frame-ancestors 'none'; default-src 'self';");
   }
 
   // Local file stored under /uploads/

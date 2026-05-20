@@ -34,12 +34,14 @@ app.use(helmet({
     useDefaults: true,
     directives: {
       "img-src": ["'self'", 'data:', 'https://*'],
-        "script-src": ["'self'", 'https://checkout.razorpay.com', 'https://cdn.razorpay.com'],
+        "script-src": ["'self'", 'https://checkout.razorpay.com', 'https://cdn.razorpay.com', 'https://cdnjs.cloudflare.com', 'https://cdn.jsdelivr.net'],
         "style-src": ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
       "font-src": ["'self'", 'https://fonts.gstatic.com', 'data:'],
       "connect-src": ["'self'", 'https://api.razorpay.com', 'https://lumberjack.razorpay.com'],
       "frame-src": ["'self'", 'https://api.razorpay.com', 'https://*.razorpay.com'],
-      "object-src": ["'self'"],
+      "object-src": ["'none'"],
+      "worker-src": ["'self'", 'blob:', 'https://cdnjs.cloudflare.com', 'https://cdn.jsdelivr.net'],
+      "frame-ancestors": ["'none'"],
     }
   }
 }));
@@ -82,6 +84,15 @@ app.use((req, res, next) => {
   if (req.session) {
     req.session.nowInMinutes = Math.floor(Date.now() / 60000);
   }
+  next();
+});
+
+// Additional strict global headers
+app.use((req, res, next) => {
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  // Ensure content is not cached by browsers or intermediate proxies
+  res.setHeader('Cache-Control', 'no-store');
   next();
 });
 

@@ -9,20 +9,16 @@
   <div class="av-secure-frame av-secure-frame--full" style="position:relative;">
     <div class="secure-content secure-pdf-shell">
       <div class="secure-blocker"></div>
-      <object
-        data="<%= viewerUrl %>#toolbar=0&navpanes=0&scrollbar=1"
-        type="application/pdf"
-        class="secure-pdf-frame"
-      >
-        <iframe
-          src="<%= viewerUrl %>#toolbar=0&navpanes=0&scrollbar=1"
-          class="secure-pdf-frame"
-          title="Secure PDF preview"
-          loading="eager"
-        ></iframe>
-      </object>
+      <div id="secure-pdf-container" class="secure-pdf-container" aria-hidden="false"
+           data-assignment-id="<%= assignment.id %>"
+           data-viewer-token="<%= viewerToken %>">
+        <!-- PDF.js canvas pages will be rendered here -->
+      </div>
     </div>
 
     <div id="overlay-watermark" class="overlay-watermark" aria-hidden="true"></div>
   </div>
+  <!-- PDF.js runtime (loaded from CDN) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js" crossorigin="anonymous"></script>
+  <script src="/js/secure-view.js"></script>
 </section>
