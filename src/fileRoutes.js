@@ -121,7 +121,9 @@ router.get('/secure-file/:id/raw', async (req, res) => {
   // (debug logs removed)
 
   // Only allow streaming local uploads stored under /uploads
-  const url = assignment.fileUrl;
+  // Normalize fileUrl: accept both '/uploads/...' and 'uploads/...'
+  let url = assignment.fileUrl || '';
+  if (url && !url.startsWith('/')) url = '/' + url;
   const isPdf = assignment.fileType === 'pdf';
 
   // Helper: apply security headers (tighten CORS to same-origin)
@@ -145,8 +147,8 @@ router.get('/secure-file/:id/raw', async (req, res) => {
 
   // Local file stored under /uploads/
   if (!url.startsWith('/uploads/')) {
+    console.warn('secure-file: rejected non-local fileUrl', { assignmentId: assignment.id, fileUrl: assignment.fileUrl });
     // We no longer proxy remote URLs. Require local uploads only.
-    // Reject non-local file URLs (require uploads to be local)
     return res.status(404).send('File not found');
   }
 
@@ -160,6 +162,7 @@ router.get('/secure-file/:id/raw', async (req, res) => {
 
   try {
     if (!fs.existsSync(localPath)) {
+      console.error('secure-file: local file missing', { localPath, assignmentId: assignment.id });
       return res.status(404).send('File not found');
     }
     const data = await fsp.readFile(localPath);
